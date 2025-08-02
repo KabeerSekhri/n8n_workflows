@@ -1,0 +1,301 @@
+{
+  "name": "Lead Gen",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f87bc760-135d-4e1b-94ee-c8d478d6a0ce",
+      "name": "When chat message received",
+      "webhookId": "a36c3e6e-b821-49da-8377-b2211636b6c5"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Extract the following information from the text here: {{ $json.chatInput }}\nJob Title - \nIndustry - \nLocation - \n\nIf I type in \"Investment  Banking directors in Atlantis\", the following should be the result. \nUse the same logic.\nJob Title - Director\nIndustry - Investment Banking\nLocation - Atlanta\nReturn the results as JSON object."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        192,
+        0
+      ],
+      "id": "163b99db-b3d3-42f9-912e-cad945874ef3",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "sXSJknsyCsmxbJMQ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5039ea27-d3a4-4c67-bb44-c69b282e9aa0",
+              "name": "startindices",
+              "value": "[1,11]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        0
+      ],
+      "id": "7de1dfd8-3ece-4f25-aa7a-269a702d7b25",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "startindices",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        752,
+        0
+      ],
+      "id": "0346f633-f74d-4b3b-acf5-3ab9d0a13066",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/customsearch/v1",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $('Message a model').item.json.message.content.Industry }}{{ $('Message a model').item.json.message.content['Job Title'] }}{{ $('Message a model').item.json.message.content.Location }} site:linkedin.com/in"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyBdOh065weTnvF2bTjyMCoTnWLycHEAccQ"
+            },
+            {
+              "name": "cx",
+              "value": "b6654d6a4c0dc400b"
+            },
+            {
+              "name": "start",
+              "value": "={{ $json.startindices }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "c207dcbe-9040-4500-afb2-5d6a234dc863",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (const item of items) {\n  // Each HTTP response item should have an \"items\" array with profile results.\n  const profiles = item.json.items || [];\n\n  for (const profile of profiles) {\n    const fullTitle = profile.title || \"\";\n    const dashIndex = fullTitle.indexOf(\" - \");\n\n    let name = \"\";\n    let title = \"\";\n\n    if (dashIndex !== -1) {\n      // The name is everything before the first dash\n      name = fullTitle.substring(0, dashIndex).trim();\n      // The title is everything after the first dash\n      title = fullTitle.substring(dashIndex + 3).trim();\n    } else {\n      // If there's no dash, fallback to fullTitle for both name and title\n      name = fullTitle;\n      title = fullTitle;\n    }\n\n    results.push({\n      json: {\n        linkedin_url: profile.link,\n        name: name,\n        title: title,\n        snippet: profile.snippet || \"\"\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "c0742cf5-2874-4283-a4be-4273b537806e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1QlZlCxw8FYR-JJpg61nutYYfDTi0MVmFddaTs0xJ4LI",
+          "mode": "list",
+          "cachedResultName": "Linkedin Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QlZlCxw8FYR-JJpg61nutYYfDTi0MVmFddaTs0xJ4LI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1QlZlCxw8FYR-JJpg61nutYYfDTi0MVmFddaTs0xJ4LI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.name }}",
+            "Title": "={{ $json.title }}",
+            "Snippet": "={{ $json.snippet }}",
+            "linkedin_url": "={{ $json.linkedin_url }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Snippet",
+              "displayName": "Snippet",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "0e3b0816-3680-4b68-a734-5626353fd2ad",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jVnVSxmO4bQYiGe0",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fa053403-92db-4fef-b5ab-1847a2d98bff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83909231682b76f549b2fd7e4cd9d4104567c8a49592f5f60fdfc12ed6826149"
+  },
+  "id": "ZYVUG9kORFm3SoT4",
+  "tags": []
+}

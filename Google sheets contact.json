@@ -1,0 +1,185 @@
+{
+  "name": "Google sheets contact",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1_mZmnHTuCXmNEMW0IgZz2DmFpYzGBrlbyJI0r9eblUA",
+          "mode": "list",
+          "cachedResultName": "Hw sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_mZmnHTuCXmNEMW0IgZz2DmFpYzGBrlbyJI0r9eblUA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_mZmnHTuCXmNEMW0IgZz2DmFpYzGBrlbyJI0r9eblUA/edit#gid=0"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "68f1481b-6b3d-407d-b23d-f0573e83017c",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "eLz3ORRwZsxXsfgy",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C097YK2LMNW",
+          "mode": "list",
+          "cachedResultName": "aite-testing"
+        },
+        "text": "=Handle this person, {{ $json.Name }}. Im too tired 😪.\nEmail: {{ $json.Email }}\nPhone Number: {{ $json['Phone No'] }}\nDescription: {{ $json.Description }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8c336cb6-2236-464d-aba2-e2ec39936a9d",
+      "name": "Send a message",
+      "webhookId": "17840ce2-a267-4ceb-a84e-7290c44e56a7",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "0nZzQhSlenjEEbGh",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Google Sheets Trigger').item.json.Email }}",
+        "subject": "We'll handle your request, relax. Have some patience, genuinely!",
+        "emailType": "text",
+        "message": "=Hey {{ $('Google Sheets Trigger').item.json.Name }},\n\nThanks for reaching out!\n\nYou seem to not be able to do something for yourself and want us to do it. So we'll do it why not!\n\nThenks",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "b2e2facd-2538-41e6-9920-0fdf4ba29040",
+      "name": "Send a message1",
+      "webhookId": "73aa56f1-0593-497e-97bf-47a235ac1048",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cMvWGq2wuVCxG6IR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "familyName": "Top G",
+        "givenName": "={{ $('Google Sheets Trigger').item.json.Name }}",
+        "additionalFields": {
+          "emailsUi": {
+            "emailsValues": [
+              {
+                "type": "home",
+                "value": "={{ $('Google Sheets Trigger').item.json.Email }}"
+              }
+            ]
+          },
+          "biographies": "={{ $('Google Sheets Trigger').item.json.Description }}",
+          "phoneUi": {
+            "phoneValues": [
+              {
+                "type": "mobile",
+                "value": "=+ {{ $('Google Sheets Trigger').item.json['Phone No'] }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleContacts",
+      "typeVersion": 1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "07b8eab1-a38e-41cd-bdda-3273bc5f0b02",
+      "name": "Create a contact",
+      "credentials": {
+        "googleContactsOAuth2Api": {
+          "id": "opkgeAeZ7gyq05Kq",
+          "name": "Google Contacts account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Create a contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2eec9110-cfa7-4969-94b2-1d88b43bfc9c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83909231682b76f549b2fd7e4cd9d4104567c8a49592f5f60fdfc12ed6826149"
+  },
+  "id": "DUVTz8BS8wv57LZ9",
+  "tags": []
+}

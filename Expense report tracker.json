@@ -1,0 +1,384 @@
+{
+  "name": "Expense report tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Wassup my G!",
+          "maxIterations": 3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        -16
+      ],
+      "id": "28c4ef8c-05b7-47dc-b2e0-aa293bcddeb4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        -16
+      ],
+      "id": "427a40f1-b8d8-4c89-8890-a91754ea0178",
+      "name": "When chat message received",
+      "webhookId": "7ecf17c7-c2d2-4a35-b110-6d97765f8ac9"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        176
+      ],
+      "id": "3f7935b8-986a-4efb-b62a-f9b7950c2eea",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "sXSJknsyCsmxbJMQ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "This is used to provide expenses and income into the database.",
+        "workflowId": {
+          "__rl": true,
+          "value": "ajkPTFXZKcw7t1Tl",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        176
+      ],
+      "id": "6df53674-8f98-4c09-a8f8-fd6f665ed7af",
+      "name": "Call n8n Workflow Tool"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0a344d42-8f4d-4fc2-b2aa-1f39101c9aa6",
+              "name": "Response",
+              "value": "={{ $('When chat message received').item.json.chatInput }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        -16
+      ],
+      "id": "7aa8e876-6fe3-48cc-a849-85f643eed7f2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -192,
+        416
+      ],
+      "id": "a39ed36b-43cf-4a2c-9190-e6066ff40b2c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "text": "=Convert expense to JSON: {{ $json.query }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Cost",
+              "type": "number",
+              "description": "Expense or Income",
+              "required": true
+            },
+            {
+              "name": "Description",
+              "description": "Expense or Income description",
+              "required": true
+            },
+            {
+              "name": "Date",
+              "description": "date of operation",
+              "required": true
+            },
+            {
+              "name": "Type",
+              "description": "Either Expense or Income",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        16,
+        416
+      ],
+      "id": "205beb06-0e7f-49e6-8c6f-d13b6cb97b99",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        592
+      ],
+      "id": "2ec2ed70-f12b-4fba-b0f9-6964dac64487",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "sXSJknsyCsmxbJMQ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1JgYxijIYVI_Gskg8MXx0r6Db2mDxHyfUlhf4WoAi8NA",
+          "mode": "list",
+          "cachedResultName": "Expense Report",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JgYxijIYVI_Gskg8MXx0r6Db2mDxHyfUlhf4WoAi8NA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JgYxijIYVI_Gskg8MXx0r6Db2mDxHyfUlhf4WoAi8NA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Description": "={{ $json.output.Description }}",
+            "Cost": "={{ $json.output.Cost }}",
+            "Date": "={{ $json.output.Date }}",
+            "Type": "={{ $json.output.Type }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cost",
+              "displayName": "Cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        368,
+        416
+      ],
+      "id": "297d836a-2c50-4d90-99ed-294f6ad1f64d",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jVnVSxmO4bQYiGe0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        176
+      ],
+      "id": "cf4f54a0-9409-4d59-be83-90af7a1bf187",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call n8n Workflow Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d418c405-3cce-4c64-96c4-395adeac2ac8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83909231682b76f549b2fd7e4cd9d4104567c8a49592f5f60fdfc12ed6826149"
+  },
+  "id": "ajkPTFXZKcw7t1Tl",
+  "tags": []
+}

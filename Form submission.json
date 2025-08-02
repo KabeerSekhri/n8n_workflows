@@ -1,0 +1,262 @@
+{
+  "name": "Form submission",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Wassup my G!",
+        "formDescription": "Lemme know your juicy details;)",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Name",
+              "placeholder": "Kage Bunshin",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Last Name",
+              "placeholder": "No Jutsu",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email ID",
+              "fieldType": "email",
+              "placeholder": "Give me Email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Description",
+              "fieldType": "textarea",
+              "placeholder": "Not interested Lol",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Select preference",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Video Game"
+                  },
+                  {
+                    "option": "Anime"
+                  },
+                  {
+                    "option": "Manga"
+                  },
+                  {
+                    "option": "Power Rangers"
+                  }
+                ]
+              },
+              "multiselect": true,
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "20b2514f-6cb3-453a-8acc-43032c820afa",
+      "name": "On form submission",
+      "webhookId": "41ca1e9c-7a06-47ce-b2bb-fa1965b7b032"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1y-ZE6Wueact9u0-OVB11ouNIKnGjkgwvv5gdOBV7CmA",
+          "mode": "list",
+          "cachedResultName": "Contact Us",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1y-ZE6Wueact9u0-OVB11ouNIKnGjkgwvv5gdOBV7CmA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1y-ZE6Wueact9u0-OVB11ouNIKnGjkgwvv5gdOBV7CmA/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "First Name": "={{ $json['First Name'] }}",
+            "Last Name": "={{ $json['Last Name'] }}",
+            "Email": "={{ $json['Email ID'] }}",
+            "Description": "={{ $json.Description }}",
+            "Preferences": "={{ $json['Select preference'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferences",
+              "displayName": "Preferences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1ab48df8-45f7-4cd0-8881-10621eab2050",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jVnVSxmO4bQYiGe0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "Wassup my G!!!",
+        "message": "=Wassup {{ $json['First Name'] }},\n\nYou filled in: {{ $json.Preferences }}. Let's chat more about it;)\n\nThanks,\nKabeer",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "a2fb6ebd-1bc7-4b62-a603-4e2becc64611",
+      "name": "Send a message",
+      "webhookId": "b2ef9837-8784-4865-9ff2-a3c7e194ef5d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cMvWGq2wuVCxG6IR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C097YFXG658",
+          "mode": "list",
+          "cachedResultName": "aite-test"
+        },
+        "text": "={{ $('Append row in sheet').item.json['First Name'] }} filled our form . Bleghh!!!\nThey like : {{ $('Append row in sheet').item.json.Preferences }}\nThey are \"{{ $('Append row in sheet').item.json.Description }}\" in their own words. Lol",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "3e07c228-af8f-485d-adfb-53136a34586a",
+      "name": "Send a message1",
+      "webhookId": "b0c6b0f1-58dc-4abd-9095-fe2e260f00f6",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "0nZzQhSlenjEEbGh",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c94c3a5d-4f5f-459d-8d61-209a0ce16d66",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83909231682b76f549b2fd7e4cd9d4104567c8a49592f5f60fdfc12ed6826149"
+  },
+  "id": "zo4STZbk6eniIGYP",
+  "tags": []
+}

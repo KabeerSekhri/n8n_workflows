@@ -1,0 +1,378 @@
+{
+  "name": "Weather delivery",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b349a248-2e08-4060-a571-bc2047a51dda",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather?q=Delhi&appid=43152a48f0184265902f9f4294b15599&units=metric",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9f24a57c-a52c-431d-b234-13344f440f10",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const weather = items[0].json;\n\nconst condition = weather.weather[0].main;\nconst description = weather.weather[0].description;\nconst temp = weather.main.temp;\nconst feelsLike = weather.main.feels_like;\nconst wind = weather.wind.speed;\nconst windDir = weather.wind.deg;\nconst visibility = weather.visibility;\n\nreturn [{\n  json: {\n    summary: `Condition: ${condition} (${description}), Temp: ${temp}°C (Feels like: ${feelsLike}°C), Wind: ${wind} m/s @ ${windDir}°, Visibility: ${visibility} meters`\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3a90f233-ad69-4c2d-a602-27c6f9afdf54",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-3.5-turbo\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"You are a helpful assistant.\" },\n    { \"role\": \"user\", \"content\": \"{{ $json.summary }}\" }\n  ],\n  \"temperature\": 0.7\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        0
+      ],
+      "id": "dfd28a66-8c0f-4e2e-829c-737cf57395c1",
+      "name": "HTTP Request1",
+      "credentials": {
+        "openAiApi": {
+          "id": "sXSJknsyCsmxbJMQ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a11b8b68-b59c-4337-8e46-2fa4324caab4",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "precautions",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "effcb87b-b077-464d-82be-698ea71fc4b5",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "unsafe",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        0
+      ],
+      "id": "65adfb75-f0d2-45b5-9386-cb72e65a7691",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1VNwWNvU66pV3A4dj_pNvb5o_Ln7e__dS99ZyK5Aoe8U",
+          "mode": "list",
+          "cachedResultName": "weather",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VNwWNvU66pV3A4dj_pNvb5o_Ln7e__dS99ZyK5Aoe8U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VNwWNvU66pV3A4dj_pNvb5o_Ln7e__dS99ZyK5Aoe8U/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Reason": "={{ $json.choices[0].message.content }}",
+            "Gpt decision": "No",
+            "Weather Summary": "={{ $('Code').item.json.summary }}",
+            "Date": "={{ $today }}",
+            "Location": "Delhi"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Weather Summary",
+              "displayName": "Weather Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Gpt decision",
+              "displayName": "Gpt decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1072,
+        -80
+      ],
+      "id": "f088a3cd-66b2-4d8a-9b2d-74e7b250e237",
+      "name": "dont go",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jVnVSxmO4bQYiGe0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1VNwWNvU66pV3A4dj_pNvb5o_Ln7e__dS99ZyK5Aoe8U",
+          "mode": "list",
+          "cachedResultName": "weather",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VNwWNvU66pV3A4dj_pNvb5o_Ln7e__dS99ZyK5Aoe8U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VNwWNvU66pV3A4dj_pNvb5o_Ln7e__dS99ZyK5Aoe8U/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $today }}",
+            "Location": "Delhi"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Weather Summary",
+              "displayName": "Weather Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Gpt decision",
+              "displayName": "Gpt decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1072,
+        96
+      ],
+      "id": "e4045ca1-795e-4aa8-aaf6-a70a2c927c49",
+      "name": "go",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jVnVSxmO4bQYiGe0",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "dont go",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "go",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f1cbef64-9f40-4387-ae3e-a98f075eca0b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83909231682b76f549b2fd7e4cd9d4104567c8a49592f5f60fdfc12ed6826149"
+  },
+  "id": "tQFzaQDcirM8P58E",
+  "tags": []
+}
