@@ -1,0 +1,445 @@
+{
+  "name": "Resume review",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{ $json['Resume Download Link'] }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        176
+      ],
+      "id": "01cf828d-db97-479f-8bea-2bf33a7ed6dd",
+      "name": "HTTP Request",
+      "notesInFlow": true,
+      "notes": "Download file from Google Drive"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        416,
+        176
+      ],
+      "id": "0d69b1ef-c76c-4eee-be0f-db376c67b500",
+      "name": "Extract from File",
+      "notesInFlow": true,
+      "notes": "Extract data from pdf"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resumeText = $json[\"text\"];\n\n// Extract name (first line)\nconst nameMatch = resumeText.match(/^(.*?)\\n/);\n\n// Email\nconst emailMatch = resumeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z]{2,}/);\n\n// Phone number (10-digit, Indian style)\nconst phoneMatch = resumeText.match(/\\b\\d{10}\\b/);\n\n// University and Degree\nconst degreeMatch = resumeText.match(/B\\.Sc in (.*?) Ashoka University/i);\nconst universityMatch = resumeText.match(/Ashoka University/i);\nconst graduationYearMatch = resumeText.match(/Ashoka University (\\d{4})/);\n\n// CGPA\nconst cgpaMatch = resumeText.match(/CGPA[\\s:]?(\\d+\\.\\d+)/i);\n\n// Technical Skills\nconst skillsMatch = resumeText.match(/Technical Proficiency (.*?)\\n/i);\n\n// Extract all internships (basic list)\nconst internshipSection = resumeText.match(/INTERNSHIPS EXPERIENCE(.*?)VOLUNTEER EXPERIENCE/s);\nconst internships = internshipSection ? internshipSection[1].trim().split(/\\n(?=[A-Z])/).map(x => x.trim()) : [];\n\n// Extract all certifications\nconst certSection = resumeText.match(/CERTIFICATIONS([\\s\\S]*?)PROJECTS/);\nlet certifications = [];\nif (certSection) {\n  const lines = certSection[1].split(\"\\n\").map(line => line.trim()).filter(Boolean);\n  for (let i = 0; i < lines.length; i += 3) {\n    certifications.push({\n      name: lines[i],\n      authority: lines[i+1] || null,\n      description: lines[i+2] || null,\n    });\n  }\n}\n\n// Extract languages\nconst languagesMatch = resumeText.match(/LANGUAGES KNOWN\\n([A-Za-z, ]+)/);\nconst languages = languagesMatch ? languagesMatch[1].split(/,?\\s+/).filter(Boolean) : [];\n\n// Extract test scores\nconst testScoreSection = resumeText.match(/TEST SCORES([\\s\\S]*?)LANGUAGES KNOWN/);\nlet testScores = [];\nif (testScoreSection) {\n  const lines = testScoreSection[1].split(\"\\n\").filter(Boolean);\n  for (let i = 0; i < lines.length; i += 2) {\n    const [test, dateLine] = [lines[i], lines[i+1] || ''];\n    const dateMatch = dateLine.match(/(\\w+ \\d{1,2}, \\d{4})/);\n    const scoreMatch = dateLine.match(/Score:\\s*([\\d/]+)/);\n    testScores.push({\n      test,\n      date: dateMatch ? dateMatch[1] : null,\n      score: scoreMatch ? scoreMatch[1] : null\n    });\n  }\n}\n\nreturn [{\n  name: nameMatch ? nameMatch[1] : null,\n  email: emailMatch ? emailMatch[0] : null,\n  phone: phoneMatch ? phoneMatch[0] : null,\n  degree: degreeMatch ? degreeMatch[1] : null,\n  university: universityMatch ? universityMatch[0] : null,\n  graduation_year: graduationYearMatch ? graduationYearMatch[1] : null,\n  cgpa: cgpaMatch ? cgpaMatch[1] : null,\n  technical_skills: skillsMatch ? skillsMatch[1].split(',').map(s => s.trim()) : [],\n  internships,\n  certifications,\n  languages,\n  test_scores: testScores,\n  raw_text: resumeText\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        336
+      ],
+      "id": "08143b9c-c3f5-4e35-8616-e76f6d83a360",
+      "name": "Code",
+      "notesInFlow": true,
+      "notes": "Extract fields from raw text"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer YOUR_API_KEY\",\n  \"Content-Type\": \"application/json\"\n}\n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a resume reviewer. You have to see if the given resume if fit for a job description of {{ $('On form submission').item.json['Job Description'] }}.Given a resume in plain text, return a structured JSON response with keys: name, university, degree, skills(if any), internships(if any), certifications(if any). Also add to JSON category-wise suggestions for each and a column with a score for each category. Finally add a final score as the weighted avg of the scores by number of items in the categories. The final columns should be:Name, University, Degree, Skills, Internships, Certifications, Suggestions, Scores, Final Score\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.text) }}\n    }\n  ],\n  \"temperature\": 0.3\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        176
+      ],
+      "id": "bc2eaaa2-4d20-4d76-b211-4981432e57d0",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json['choices'][0]['message']['content'];\n\n// Match content between triple backticks ```json and ```\nconst match = raw.match(/```json\\s*([\\s\\S]*?)\\s*```/);\n\nif (!match || !match[1]) {\n  throw new Error(\"Could not extract JSON content from code block.\");\n}\n\nconst cleaned = match[1].trim();\n\nlet data;\ntry {\n  data = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error(\"Invalid JSON format: \" + e.message);\n}\n\nreturn [data];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        176
+      ],
+      "id": "61117a98-42bd-45a5-a78d-f2ed62e40bec",
+      "name": "Code1",
+      "notesInFlow": true,
+      "notes": "Categorize Data with Suggestions"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "10liIUv98pWYgo4Ei3O6f5PXzk8k3-i-IC-LbcKMRs1c",
+          "mode": "list",
+          "cachedResultName": "Resume Review",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10liIUv98pWYgo4Ei3O6f5PXzk8k3-i-IC-LbcKMRs1c/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10liIUv98pWYgo4Ei3O6f5PXzk8k3-i-IC-LbcKMRs1c/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.Name }}",
+            "University": "={{ $json.University }}",
+            "Degree": "={{ $json.Degree }}",
+            "Skills": "={{ $json.Skills.join('\\n') }}",
+            "Internships": "={{ \n  $json.Internships.map(i => \n    `• ${i.Role} at ${i.Company} (${i.Duration})`\n  ).join('\\n')\n}}\n",
+            "Certifications": "={{ $json.Certifications.join('\\n') }}",
+            "Suggestions": "={{ \n  Object.entries($json.Suggestions).map(\n    ([key, val]) => `• ${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}`\n  ).join('\\n') \n}}\n",
+            "Scores": "={{ \n  Object.entries($json.Scores).map(\n    ([key, val]) => `• ${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}`\n  ).join('\\n') \n}}",
+            "Final Score": "={{ $json['Final Score'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "University",
+              "displayName": "University",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Degree",
+              "displayName": "Degree",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Skills",
+              "displayName": "Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Internships",
+              "displayName": "Internships",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Certifications",
+              "displayName": "Certifications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suggestions",
+              "displayName": "Suggestions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Scores",
+              "displayName": "Scores",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Final Score",
+              "displayName": "Final Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1184,
+        176
+      ],
+      "id": "b51f1c3a-c15e-4f70-8d3b-f3178da95fc6",
+      "name": "Append row in sheet",
+      "notesInFlow": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "jVnVSxmO4bQYiGe0",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Add info to sheet"
+    },
+    {
+      "parameters": {
+        "formTitle": "Resume Review",
+        "formDescription": "Mention the Job Description and Resume Google drive link",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "Enter your email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Description",
+              "placeholder": "Enter JD",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume Link",
+              "placeholder": "Enter Link from Google Drive",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        336
+      ],
+      "id": "330fcf1c-2a16-4234-b4bc-eddfb37b4216",
+      "name": "On form submission",
+      "webhookId": "b288e1e8-48b6-49eb-b3e6-18cf52e4bb42"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over each item from previous node\nreturn items.map(item => {\n  const data = item.json;\n\n  const resumeLink = data[\"Resume Link\"];\n  \n  // Extract file ID from the Google Drive URL\n  const match = resumeLink.match(/\\/d\\/([^\\/]+)\\//);\n  const fileId = match ? match[1] : null;\n\n  // Construct direct download link\n  const downloadLink = fileId \n    ? `https://drive.google.com/uc?export=download&id=${fileId}` \n    : null;\n\n  // Return updated object\n  return {\n    json: {\n      ...data,\n      \"Resume Download Link\": downloadLink\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        336
+      ],
+      "id": "ad0dfc2d-59c3-42a3-8142-8d51e160042b",
+      "name": "Code2",
+      "notesInFlow": true,
+      "notes": "Create Resume download link"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').item.json.Email }}",
+        "subject": "Resume Review Update (n8n)",
+        "emailType": "text",
+        "message": "=Hello  {{ $json.Name }},\n\nYour resume has been verified! \n\nYou had applied for {{ $('On form submission').item.json['Job Description'] }} role. Your resume has received final score of {{ $json['Final Score'] }}.\n\n\nHere are the changes we suggest you make to your resume to make it a better fit:\n{{ $json.Suggestions }}\n\nReach out to us in case of any queries!\n\nThank You\nAITE Group",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1392,
+        176
+      ],
+      "id": "a9f519b1-b21c-4260-868e-d640cec1854b",
+      "name": "Send a message",
+      "webhookId": "bbd8f9d8-3c93-4c88-a8f9-59040614f7fb",
+      "notesInFlow": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cMvWGq2wuVCxG6IR",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "Send email to user"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0999TNRX16",
+          "mode": "list",
+          "cachedResultName": "resume-updates"
+        },
+        "text": "=Resume has been reviewed for {{ $('Append row in sheet').item.json.Name }}.\nJob Description - {{ $('On form submission').item.json['Job Description'] }}\nFinal Score - {{ $('Append row in sheet').item.json['Final Score'] }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        176
+      ],
+      "id": "02cced7a-a819-4710-91c4-d476c3684108",
+      "name": "Send a message1",
+      "webhookId": "996de994-55b7-48c4-9d6a-5dc6fceaf19d",
+      "notesInFlow": true,
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "0nZzQhSlenjEEbGh",
+          "name": "Slack account"
+        }
+      },
+      "notes": "Send message to team"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "79519071-de5c-4f79-b057-9659dc4aba3b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83909231682b76f549b2fd7e4cd9d4104567c8a49592f5f60fdfc12ed6826149"
+  },
+  "id": "FWvGTlnNNtqeLcU9",
+  "tags": []
+}
